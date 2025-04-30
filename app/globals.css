@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 0 72% 51%; /* Red */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 48 100% 50%; /* Yellow */
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 0 72% 51%; /* Red */
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 0 72% 51%; /* Red */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 48 100% 50%; /* Yellow */
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 48 100% 50%; /* Yellow */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter), sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-inter), sans-serif;
+  }
+
+  /* Styling for light and dark mode */
+  .light {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --accent-color: #e60000; /* Red */
+    --border-color: #e2e8f0;
+  }
+
+  .dark {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --accent-color: #ffcc00; /* Yellow */
+    --border-color: #334155;
+  }
+
+  /* Prose styles for markdown content */
+  .prose {
+    max-width: 100%;
+    font-family: var(--font-inter), sans-serif;
+    line-height: 1.7;
+  }
+
+  .prose.prose-invert {
+    color: #1e293b;
+  }
+
+  .prose.prose-gray {
+    color: #1e293b;
+  }
+
+  .prose p {
+    margin-top: 1em;
+    margin-bottom: 1em;
+    white-space: normal;
+    word-wrap: break-word;
+  }
+
+  .dark .prose strong {
+    color: #ffcc00; /* Yellow */
+    font-weight: 700;
+  }
+
+  .light .prose strong {
+    color: #e60000; /* Red */
+    font-weight: 700;
+  }
+
+  .prose a {
+    color: var(--accent-color);
+    text-decoration: underline;
+    transition: all 0.2s ease;
+  }
+
+  .prose a:hover {
+    opacity: 0.8;
+  }
+
+  .prose hr {
+    margin-top: 2em;
+    margin-bottom: 2em;
+    border-color: var(--border-color);
+  }
+
+  .dark .prose code {
+    color: #ffcc00; /* Yellow */
+    background-color: rgba(55, 65, 81, 0.5);
+    padding: 0.2em 0.4em;
+    border-radius: 0.25em;
+    font-family: monospace;
+  }
+
+  .light .prose code {
+    color: #e60000; /* Red */
+    background-color: rgba(243, 244, 246, 0.7);
+    padding: 0.2em 0.4em;
+    border-radius: 0.25em;
+    font-family: monospace;
+  }
+
+  /* Legal document styling */
+  .prose h1,
+  .prose h2,
+  .prose h3 {
+    font-family: var(--font-inter), sans-serif;
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+  }
+
+  .dark .prose h1,
+  .dark .prose h2,
+  .dark .prose h3 {
+    color: #ffcc00; /* Yellow */
+  }
+
+  .light .prose h1,
+  .light .prose h2,
+  .light .prose h3 {
+    color: #e60000; /* Red */
+  }
+
+  .prose blockquote {
+    border-left: 4px solid var(--accent-color);
+    padding-left: 1rem;
+    font-style: italic;
+    color: var(--text-secondary);
+  }
+
+  /* Light mode specific overrides */
+  .light-mode .prose p {
+    color: #1e293b;
+  }
+
+  .light-mode .prose strong {
+    color: #e60000; /* Red */
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  /* Transitions */
+  .transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+}
