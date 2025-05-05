@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   MoonIcon,
@@ -46,11 +46,21 @@ export default function Home() {
   const [newModelMessage, setNewModelMessage] = useState<Message | null>(null)
   const [lastQueryId, setLastQueryId] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | number | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Fix hydration issues with theme
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.style.height = "auto"
+      textarea.style.height = `${textarea.scrollHeight}px`
+    }
+  }, [input])
 
   // Update displayed model message when selected model changes
   useEffect(() => {
@@ -65,6 +75,22 @@ export default function Home() {
       }
     }
   }, [selectedModel])
+
+  // Handle key press events for the textarea
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter") {
+      if (e.shiftKey) {
+        // Allow Shift+Enter for new line
+        return
+      } else {
+        // Submit form on Enter without Shift
+        e.preventDefault()
+        if (!isLoading && input.trim()) {
+          handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
+        }
+      }
+    }
+  }
 
   // Update the handleSubmit function to better handle errors
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -320,7 +346,7 @@ export default function Home() {
                       <button
                         onClick={() => copyToClipboard(pair.assistant!.content, pair.assistant!.id)}
                         className={`absolute top-2 right-2 p-1 rounded-md ${
-                          theme === "dark" ? "bg-gray-600 hover:bg-gray-500" : "bg-red-100 text-black hover:bg-red-200"
+                          theme === "dark" ? "bg-gray-600 hover:bg-gray-500" : "bg-red-100 hover:bg-red-200"
                         } opacity-0 group-hover:opacity-100 transition-all duration-300`}
                         aria-label="Copy to clipboard"
                       >
@@ -539,22 +565,24 @@ export default function Home() {
       >
         <div className="container mx-auto px-4 py-4">
           <form onSubmit={handleSubmit} className="flex gap-3">
-            <Input
+            <Textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Nhập câu hỏi của bạn về Luật Kinh Tế..."
-              className={`flex-1 rounded-lg ${
+              onKeyDown={handleKeyDown}
+              placeholder="Nhập câu hỏi của bạn về Luật Kinh Tế... (Shift+Enter để xuống dòng)"
+              className={`flex-1 rounded-lg min-h-[60px] max-h-[200px] overflow-y-auto resize-none ${
                 theme === "dark"
                   ? "border-gray-600 bg-gray-700 text-gray-100 focus-visible:ring-yellow-500 placeholder-gray-400"
                   : "border-gray-300 bg-gray-50 text-gray-800 focus-visible:ring-red-500 placeholder-gray-500"
-              } px-4 py-6 transition-colors duration-300`}
+              } px-4 py-3 transition-colors duration-300`}
               disabled={isLoading}
             />
             <Button
               type="submit"
               className={`rounded-lg ${
                 theme === "dark" ? "bg-red-600 hover:bg-red-700" : "bg-red-700 hover:bg-red-800"
-              } text-white px-6 transition-colors duration-300 shadow-md hover:shadow-lg`}
+              } text-white px-6 transition-colors duration-300 shadow-md hover:shadow-lg h-[60px]`}
               disabled={isLoading || !input.trim()}
             >
               {isLoading ? (
