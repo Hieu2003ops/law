@@ -41,7 +41,7 @@ export function RagContentRenderer({ content }: RagContentRendererProps) {
             <div
               key={idx}
               className={cn(
-                "flex items-center font-bold text-xl mb-4",
+                "flex items-center font-bold text-xl  whitespace-nowrap mb-4",
                 isDark ? "text-yellow-300" : "text-red-700"
               )}
             >
