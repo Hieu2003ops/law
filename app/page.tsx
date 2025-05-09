@@ -318,7 +318,7 @@ export default function Home() {
                 <div className="flex justify-end">
                   <div
                     className={cn(
-                      "max-w-[95%] rounded-lg p-4 group relative transition-all duration-300",
+                      "max-w-[105%] rounded-lg p-4 group relative transition-all duration-300",
                       theme === "dark" ? "bg-red-600 text-white shadow-md" : "bg-red-500 text-white shadow-md",
                     )}
                   >
@@ -374,7 +374,7 @@ export default function Home() {
                         theme === "dark" ? "bg-gray-700 border border-gray-600" : "bg-red-50 border border-red-100"
                       } transition-colors duration-300`}
                     >
-                      <div className={`prose ${theme === "dark" ? "dark:prose-invert" : "text-gray-800"} prose-sm`}>
+                      <div className={`prose ${theme === "dark" ? "dark:prose-invert" : "!text-[#1e293b]"}`}>
                         <TypingEffect text={newRagMessage.content} typingSpeed={20} />
                       </div>
                     </div>
@@ -512,9 +512,9 @@ export default function Home() {
                         </div>
                       )}
 
-                      <div className={`prose ${theme === "dark" ? "dark:prose-invert" : "text-gray-800"} prose-sm`}>
+                      <div className={`prose ${theme === "dark" ? "dark:prose-invert" : "!text-[#1e293b]"}`}>
                         {pair.assistant.content.split("\n").map((line, i) => (
-                          <p key={i} className={i > 0 ? "mt-2" : ""}>
+                          <p key={i} className={i > 0 ? `mt-2 ${theme === "light"?"!text-[#1e293b]":""}` : `${theme === "light"?"!text-[#1e293b]":""}`}>
                             {line}
                           </p>
                         ))}
@@ -543,7 +543,7 @@ export default function Home() {
                         ></span>
                         {newModelMessage.model === "llama" ? "META LLAMA" : "GEMINI"}
                       </div>
-                      <div className={`prose ${theme === "dark" ? "dark:prose-invert" : "text-gray-800"} prose-sm`}>
+                      <div className={`prose ${theme === "dark" ? "dark:prose-invert" : "!text-[#1e293b]"}`}>
                         <TypingEffect text={newModelMessage.content} typingSpeed={20} />
                       </div>
                     </div>

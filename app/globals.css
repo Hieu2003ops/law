@@ -123,6 +123,11 @@
     margin-bottom: 1em;
     white-space: normal;
     word-wrap: break-word;
+    color: #e3e8ef;
+  }
+
+  .importantColor {
+    color: #1e293b !important ;
   }
 
   .dark .prose strong {
@@ -197,7 +202,7 @@
 
   /* Light mode specific overrides */
   .light-mode .prose p {
-    color: #1e293b;
+    color: var(--text-primary);
   }
 
   .light-mode .prose strong {
