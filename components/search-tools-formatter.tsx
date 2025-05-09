@@ -1,155 +1,362 @@
+// components/search-tools-formatter.tsx
 "use client"
 
-import { SearchResults } from "./search-results"
+import { useTheme } from "next-themes"
+import { ClockIcon, FileText, Calendar, ExternalLink } from "lucide-react"
 
 interface SearchToolsFormatterProps {
   content: string
 }
 
+interface SearchResult {
+  title?: string
+  url?: string
+  snippet?: string
+  source?: string
+  date?: string
+}
+
+/**
+ * Parser Google Serper: trích mảng SearchResult[]
+ */
+function parseGoogleSerperResults(text: string): SearchResult[] | null {
+  const headerMatch = text.match(/Kết quả Tìm kiếm Tin tức:\s*([\s\S]*)/i)
+  if (!headerMatch) return null
+
+  const body = headerMatch[1].trim()
+  const results: SearchResult[] = []
+  const itemRegex =
+    /(\d+)\.\s*(.*?)\nNguồn:\s*([^|]+)\|\s*Ngày:\s*([^\n]+)\nMô tả:\s*([\s\S]*?)(?=\n\d+\.|\n*$)/g
+
+  let m: RegExpExecArray | null
+  while ((m = itemRegex.exec(body)) !== null) {
+    const [, , rawTitle, rawSource, rawDate, rawDesc] = m
+    const linkMatch = rawDesc.match(/Link:\s*(https?:\/\/[^\s]+)/i)
+    const url = linkMatch?.[1] ?? ""
+    const snippet = rawDesc.replace(/Link:\s*https?:\/\/[^\s]+/i, "").trim()
+
+    results.push({
+      title:   rawTitle.trim(),
+      url,
+      snippet,
+      source:  rawSource.trim(),
+      date:    rawDate.trim(),
+    })
+  }
+
+  return results.length > 0 ? results : null
+}
+
+// Helper function to make URLs clickable
+function makeUrlsClickable(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.split(urlRegex).map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 export function SearchToolsFormatter({ content }: SearchToolsFormatterProps) {
-  // Phân tích nội dung để tìm kết quả từ Tavily và Google Serper
-  const parseTavilyResults = (content: string) => {
-    const tavilyRegex = /--- Tavily ---[\s\S]*?Kết quả từ Tavily:([\s\S]*?)(?=---|$)/i
-    const tavilyMatch = content.match(tavilyRegex)
+  const { theme } = useTheme()
+  const isDark = theme === "dark"
+  const results = parseGoogleSerperResults(content) || []
 
-    if (!tavilyMatch) return null
-
-    const tavilyContent = tavilyMatch[1].trim()
-    const results = []
-
-    // Phân tích từng kết quả Tavily
-    const resultRegex = /###\s*(\d+)\.([^#]*?)(?=###\s*\d+\.|$)/g
-    let match
-
-    while ((match = resultRegex.exec(tavilyContent + "###")) !== null) {
-      if (match[2]) {
-        const resultText = match[2].trim()
-
-        // Tìm URL nếu có
-        const urlMatch = resultText.match(/(https?:\/\/[^\s]+)/)
-        const url = urlMatch ? urlMatch[1].replace(/\.$/, "") : ""
-
-        // Tìm tiêu đề và nội dung
-        let title = ""
-        let content = resultText
-
-        if (url) {
-          // Lấy phần trước URL làm tiêu đề nếu có
-          const parts = resultText.split(url)
-          if (parts[0]) {
-            title = parts[0].trim()
-            content = parts[1] ? parts[1].trim() : ""
-          }
-        }
-
-        // Tìm thông tin nguồn
-        const sourceMatch = resultText.match(/Loại nguồn:\s*([^\n]+)/i)
-        const source = sourceMatch ? sourceMatch[1].trim() : ""
-
-        results.push({
-          title: title || url,
-          url,
-          content,
-          source,
-        })
-      }
-    }
-
-    return results.length > 0 ? results : null
-  }
-
-  const parseGoogleSerperResults = (content: string) => {
-    // Thử nhiều mẫu regex khác nhau để phù hợp với định dạng của backend
-    const serperRegexes = [
-      /--- Google Serper (?:$$Tin tức$$|$$Tin tức$$) ---[\s\S]*?Kết quả Tìm kiếm Tin tức:([\s\S]*?)(?=---|$)/i,
-      /--- Google Serper ---[\s\S]*?Kết quả Tìm kiếm:([\s\S]*?)(?=---|$)/i,
-      /Google Serper $$Tin tức$$[\s\S]*?Kết quả Tìm kiếm Tin tức:([\s\S]*?)(?=---|$)/i,
-    ]
-
-    let serperMatch = null
-    for (const regex of serperRegexes) {
-      serperMatch = content.match(regex)
-      if (serperMatch) break
-    }
-
-    if (!serperMatch) return null
-
-    const serperContent = serperMatch[1].trim()
-    const results = []
-
-    // Phân tích từng kết quả Google Serper
-    const resultRegex = /(\d+)\.\s*(.*?)(?=\d+\.\s*|$)/gs
-    let match
-
-    while ((match = resultRegex.exec(serperContent + "999. ")) !== null) {
-      if (match[2]) {
-        const resultText = match[2].trim()
-
-        // Tìm URL
-        const urlMatch = resultText.match(/Link:\s*(https?:\/\/[^\s]+)/i)
-        const url = urlMatch ? urlMatch[1].trim() : ""
-
-        // Tìm nguồn
-        const sourceMatch = resultText.match(/Nguồn:\s*([^|]+)/i)
-        const source = sourceMatch ? sourceMatch[1].trim() : ""
-
-        // Tìm ngày
-        const dateMatch = resultText.match(/Ngày:\s*([^-]+)/i)
-        const date = dateMatch ? dateMatch[1].trim() : ""
-
-        // Tìm mô tả
-        const descMatch = resultText.match(/Mô tả:\s*(.*?)(?=\s*-\s*Link:|$)/is)
-        const description = descMatch ? descMatch[1].trim() : ""
-
-        // Lấy tiêu đề (phần đầu tiên của kết quả)
-        let title = resultText.split(" - Nguồn:")[0].trim()
-        if (title.length > 100) {
-          title = title.substring(0, 100) + "..."
-        }
-
-        results.push({
-          title,
-          url,
-          snippet: description,
-          source,
-          date,
-        })
-      }
-    }
-
-    return results.length > 0 ? results : null
-  }
-
-  // Thêm hàm debug để kiểm tra nội dung
-  const debugContent = () => {
-    console.log("Content to parse:", content)
-    console.log("Has Tavily:", content.includes("--- Tavily ---"))
-    console.log("Has Google Serper:", content.includes("--- Google Serper"))
-  }
-
-  // Gọi hàm debug để kiểm tra
-  debugContent()
-
-  const tavilyResults = parseTavilyResults(content)
-  const serperResults = parseGoogleSerperResults(content)
-
-  if (!tavilyResults && !serperResults) {
-    // Nếu không tìm thấy kết quả tìm kiếm, trả về nội dung gốc
-    return (
-      <div className="prose max-w-none dark:prose-invert">
-        <p>{content}</p>
-      </div>
-    )
-  }
+  // Check if content starts with "🧭 PHẦN"
+  const isPartSection = content.trim().startsWith("🧭 PHẦN");
 
   return (
-    <div className="space-y-4">
-      {content.includes("PHẦN II: Các nguồn thông tin bổ sung từ công cụ tìm kiếm") && (
-        <div className="font-medium text-lg mt-4 mb-2">PHẦN II: Các nguồn thông tin bổ sung từ công cụ tìm kiếm:</div>
-      )}
+    <div className="bg-red-50 dark:bg-red-900/10 p-6 rounded-lg">
+      {/* ==== HEADER PHẦN II ==== */}
+      <header
+        className={
+          "flex items-center font-bold text-xl whitespace-nowrap mb-4 " +
+          "text-red-700 dark:text-red-500"
+        }
+      >
+        <ClockIcon className="mr-2" />
+        PHẦN II: Các nguồn thông tin bổ sung từ công cụ tìm kiếm:
+      </header>
 
-      {tavilyResults && <SearchResults tool="tavily" results={tavilyResults} />}
-      {serperResults && <SearchResults tool="google-serper" results={serperResults} />}
+      {/* ==== NẾU CÓ KẾT QUẢ ==== */}
+      {results.length > 0 ? (
+        <ol className="list-decimal list-outside pl-6 space-y-6">
+          {results.map((r, i) => (
+            <li
+              key={i}
+              className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm"
+            >
+              {/* Tiêu đề */}
+              <p
+                className={
+                  "text-lg font-semibold " +
+                  (isDark ? "text-red-500" : "text-red-600")
+                }
+              >
+                {r.title}
+              </p>
+
+              {/* Metadata thụt dòng */}
+              <div className="mt-2 ml-6 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                {r.source  && <p><strong className="text-red-600 dark:text-red-500">Nguồn:</strong> {r.source}</p>}
+                {r.date    && <p><strong className="text-red-600 dark:text-red-500">Ngày:</strong> {r.date}</p>}
+                {r.snippet && <p>{makeUrlsClickable(r.snippet)}</p>}
+                {r.url     && (
+                  <p>
+                    <strong className="text-red-600 dark:text-red-500">Link:</strong>{" "}
+                    <a
+                      href={r.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {new URL(r.url).hostname}
+                    </a>
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        /* ==== FALLBACK ==== */
+        <ol className="list-decimal list-outside pl-6">
+          <li className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm">
+            <p
+              className={
+                "text-lg font-semibold " +
+                (isDark ? "text-red-500" : "text-red-600")
+              }
+            >
+              {content.split("\n")[0] || ""}
+            </p>
+            <div className="mt-2 ml-6 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+              {content
+                .split("\n")
+                .slice(1)
+                .map((l, idx) => (
+                  <p key={idx}>
+                    {l.startsWith("🧭 PHẦN") ? (
+                      <span className="text-purple-600 dark:text-purple-400 font-semibold">{l}</span>
+                    ) : (
+                      makeUrlsClickable(l)
+                    )}
+                  </p>
+                ))}
+            </div>
+          </li>
+        </ol>
+      )}
     </div>
   )
 }
+
+
+// "use client"
+
+// import { useTheme } from "next-themes"
+
+// interface SearchToolsFormatterProps {
+//   content: string
+// }
+
+// interface SearchResult {
+//   title?: string
+//   url?: string
+//   snippet?: string
+//   source?: string
+//   date?: string
+// }
+
+// /**
+//  * Parser Google Serper: trích mảng SearchResult[]
+//  */
+// function parseGoogleSerperResults(text: string): SearchResult[] | null {
+//   const headerMatch =
+//     text.match(/Kết quả Tìm kiếm Tin tức:\s*([\s\S]*)/i) || text.match(/Kết quả Tìm kiếm:\s*([\s\S]*)/i)
+//   if (!headerMatch) return null
+
+//   const body = headerMatch[1].trim()
+//   const results: SearchResult[] = []
+
+//   // Cải thiện regex để bắt được nhiều định dạng hơn
+//   const itemRegex =
+//     /(\d+)[.|)]?\s*(.*?)(?:\n|\s+)Nguồn:\s*([^|]+)(?:\|\s*Ngày:\s*([^\n]+))?(?:\n|\s+)Mô tả:\s*([\s\S]*?)(?=\n\d+[.|)]?\.|\s*\n\d+[.|)]?\.|\n*$)/g
+
+//   let m: RegExpExecArray | null
+
+//   while ((m = itemRegex.exec(body + "\n999. ")) !== null) {
+//     const [, , rawTitle, rawSource, rawDate, rawDesc] = m
+//     const linkMatch = rawDesc?.match(/Link:\s*(https?:\/\/[^\s]+)/i)
+//     const url = linkMatch?.[1] ?? ""
+//     const snippet = rawDesc?.replace(/Link:\s*https?:\/\/[^\s]+/i, "").trim() || ""
+
+//     if (rawTitle) {
+//       results.push({
+//         title: rawTitle.trim(),
+//         url,
+//         snippet,
+//         source: rawSource?.trim() || "",
+//         date: rawDate?.trim() || "",
+//       })
+//     }
+//   }
+
+//   // Nếu không tìm thấy kết quả với regex phức tạp, thử với regex đơn giản hơn
+//   if (results.length === 0) {
+//     const simpleItemRegex = /(\d+)[.|)]?\s*(.*?)(?=\n\d+[.|)]?\.|\n*$)/g
+//     while ((m = simpleItemRegex.exec(body + "\n999. ")) !== null) {
+//       const [, , rawContent] = m
+//       if (rawContent) {
+//         const lines = rawContent.split("\n")
+//         const title = lines[0]?.trim() || ""
+//         let source = ""
+//         let date = ""
+//         let snippet = ""
+//         let url = ""
+
+//         for (const line of lines.slice(1)) {
+//           if (line.includes("Nguồn:")) source = line.replace("Nguồn:", "").trim()
+//           else if (line.includes("Ngày:")) date = line.replace("Ngày:", "").trim()
+//           else if (line.includes("Mô tả:")) snippet = line.replace("Mô tả:", "").trim()
+//           else if (line.includes("Link:")) {
+//             const linkMatch = line.match(/Link:\s*(https?:\/\/[^\s]+)/i)
+//             url = linkMatch?.[1] || ""
+//           } else {
+//             snippet += " " + line.trim()
+//           }
+//         }
+
+//         results.push({ title, url, snippet, source, date })
+//       }
+//     }
+//   }
+
+//   return results.length > 0 ? results : null
+// }
+
+// /**
+//  * Component chính: render theo đúng định dạng yêu cầu
+//  * KHÔNG sử dụng SearchResults component
+//  */
+// export function SearchToolsFormatter({ content }: SearchToolsFormatterProps) {
+//   const { theme } = useTheme()
+//   const isDark = theme === "dark"
+//   const results = parseGoogleSerperResults(content) || []
+
+//   // Render trực tiếp kết quả, không sử dụng SearchResults component
+//   return (
+//     <div className={`${isDark ? "bg-red-900/20" : "bg-red-50"} p-6 rounded-lg`}>
+//       {/* ==== Header PHẦN II ==== */}
+//       <header className={`flex items-center font-bold text-xl mb-4 ${isDark ? "text-yellow-400" : "text-red-800"}`}>
+//         <span className="mr-2">🕒</span>
+//         PHẦN II: Các nguồn thông tin bổ sung từ công cụ tìm kiếm:
+//       </header>
+
+//       <div className="mt-4 mb-2">
+//         <p className={`font-medium ${isDark ? "text-gray-300" : "text-gray-800"}`}>Kết quả Tìm kiếm Tin tức:</p>
+//       </div>
+
+//       {results.length > 0 ? (
+//         /* Nếu parse được kết quả: hiển thị list */
+//         <div className="space-y-6">
+//           {results.map((r, i) => (
+//             <div key={i} className="ml-0">
+//               {/* 1) Số thứ tự và tiêu đề */}
+//               <p className="mb-2">
+//                 <span className={`font-bold ${isDark ? "text-yellow-400" : "text-red-600"}`}>{i + 1}. </span>
+//                 <span className={`font-bold ${isDark ? "text-yellow-400" : "text-red-600"}`}>{r.title}</span>
+//               </p>
+
+//               {/* 2) Nguồn và ngày */}
+//               {(r.source || r.date) && (
+//                 <p className={`mb-2 ${isDark ? "text-gray-300" : "text-gray-800"}`}>
+//                   <span className="font-medium">Nguồn: </span>
+//                   {r.source}
+//                   {r.date && (
+//                     <>
+//                       <span className="mx-2">|</span>
+//                       <span className="font-medium">Ngày: </span>
+//                       {r.date}
+//                     </>
+//                   )}
+//                 </p>
+//               )}
+
+//               {/* 3) Mô tả */}
+//               {r.snippet && (
+//                 <p className={`mb-2 ${isDark ? "text-gray-300" : "text-gray-800"}`}>
+//                   <span className="font-medium">Mô tả: </span>
+//                   {r.snippet}
+//                 </p>
+//               )}
+
+//               {/* 4) Link */}
+//               {r.url && (
+//                 <p className={`mb-2 ${isDark ? "text-gray-300" : "text-gray-800"}`}>
+//                   <span className="font-medium">Link: </span>
+//                   <a
+//                     href={r.url}
+//                     target="_blank"
+//                     rel="noopener noreferrer"
+//                     className={`${isDark ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"} hover:underline`}
+//                   >
+//                     {r.url}
+//                   </a>
+//                 </p>
+//               )}
+//             </div>
+//           ))}
+//         </div>
+//       ) : (
+//         /* Fallback: hiển thị nguyên content với định dạng tương tự */
+//         <div className={`${isDark ? "text-gray-300" : "text-gray-800"}`}>
+//           {content.split("\n").map((line, idx) => {
+//             // Định dạng số thứ tự và tiêu đề
+//             if (/^\d+\./.test(line)) {
+//               const parts = line.split(/^(\d+\.\s*)/)
+//               if (parts.length >= 3) {
+//                 return (
+//                   <p key={idx} className="mb-2">
+//                     <span className={`font-bold ${isDark ? "text-yellow-400" : "text-red-600"}`}>{parts[1]}</span>
+//                     <span className={`font-bold ${isDark ? "text-yellow-400" : "text-red-600"}`}>{parts[2]}</span>
+//                   </p>
+//                 )
+//               }
+//             }
+
+//             // Định dạng các dòng khác
+//             if (line.startsWith("Nguồn:") || line.startsWith("Mô tả:") || line.startsWith("Link:")) {
+//               const [prefix, ...rest] = line.split(":")
+//               return (
+//                 <p key={idx} className="mb-2">
+//                   <span className="font-medium">{prefix}: </span>
+//                   {rest.join(":")}
+//                 </p>
+//               )
+//             }
+
+//             return (
+//               <p key={idx} className="mb-2">
+//                 {line}
+//               </p>
+//             )
+//           })}
+//         </div>
+//       )}
+//     </div>
+//   )
+// }
+
+
